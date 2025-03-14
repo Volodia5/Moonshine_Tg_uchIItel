@@ -1,6 +1,6 @@
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from supabase import Client, create_client
+from app.db.db import supabase
 
 async def process_invite_code(message: Message, state: FSMContext) -> None:
     invite_code = message.text.strip()

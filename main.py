@@ -7,12 +7,12 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from supabase import create_client, Client
 
-supabase: Client = create_client(
-    os.getenv("SUPABASE_URL", ""),
-    os.getenv("SUPABASE_KEY", "")
-)
+from app.handlers.start import start
+from app.handlers.role_selection import process_role_selection
+from app.handlers.invite_code import process_invite_code
+from app.states import RegistrationStates
+
 
 async def main() -> None:
     load_dotenv()

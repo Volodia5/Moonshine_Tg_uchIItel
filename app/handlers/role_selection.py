@@ -1,5 +1,6 @@
 from aiogram.types import CallbackQuery
 from ...main import supabase
+from ..states import RegistrationStates
 import uuid
 
 async def process_role_selection(callback: CallbackQuery, state: FSMContext) -> None:
