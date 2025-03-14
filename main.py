@@ -9,9 +9,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
 from app.handlers.start import start
-from app.handlers.role_selection import process_role_selection
-from app.handlers.invite_code import process_invite_code
-from app.states import RegistrationStates
+# from app.handlers.role_selection import process_role_selection
+# from app.handlers.invite_code import process_invite_code
+# from app.states import RegistrationStates
 
 
 async def main() -> None:
@@ -21,8 +21,8 @@ async def main() -> None:
     dp = Dispatcher()
 
     dp.message.register(start, Command("start"))
-    dp.callback_query.register(process_role_selection, F.data.startswith("role_"))
-    dp.message.register(process_invite_code, RegistrationStates.waiting_for_invite_code)
+    # dp.callback_query.register(process_role_selection, F.data.startswith("role_"))
+    # dp.message.register(process_invite_code, RegistrationStates.waiting_for_invite_code)
 
     bot = Bot(token=bot_token)
     await dp.start_polling(bot)
