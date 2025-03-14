@@ -35,7 +35,7 @@ async def process_chatgpt(message: Message, state: FSMContext) -> None:
             messages=[
                 {
                     "role": "system",
-                    "content": "Ты - помощник для учителя. Твоя задача сделать подобное задание с ответом по данному тексту: "
+                    "content": "Ты - помощник для учителя. Твоя задача сделать подобное задание с ответом по тексту пользователя"
                 },
                 {
                     "role": "user",
