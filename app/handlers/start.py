@@ -20,11 +20,19 @@ async def start(message: Message, state: FSMContext) -> None:
 async def process_lesson_text(message: Message, state: FSMContext) -> None:
     try:
         # Store the lesson text in Supabase
-        await store_lesson_text(
+        lesson_id = await store_lesson_text(
             text=message.text,
             author_id=float(message.from_user.id)
         )
-        await message.answer("✅ Текст урока успешно сохранен!")
+        
+        # Generate student link
+        bot_username = message.bot.username
+        student_link = f"https://t.me/{bot_username}?start={lesson_id}"
+        
+        await message.answer(
+            "✅ Текст урока успешно сохранен!\n\n"
+            f"🔗 Ссылка для учеников:\n{student_link}"
+        )
     except Exception as e:
         await message.answer("❌ Произошла ошибка при сохранении текста урока. Пожалуйста, попробуйте позже.")
     finally:
