@@ -4,15 +4,11 @@ from dotenv import load_dotenv
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message
 
 from app.handlers.start import start
-# from app.handlers.role_selection import process_role_selection
-# from app.handlers.invite_code import process_invite_code
-# from app.states import RegistrationStates
-
+from app.handlers.chat_gpt import chatgpt, process_chatgpt
+from app.states.state import UserState
 
 async def main() -> None:
     load_dotenv()
@@ -20,9 +16,12 @@ async def main() -> None:
 
     dp = Dispatcher()
 
+    # ChatGPT handlers
+    dp.message.register(chatgpt, Command("chatgpt"))
+    dp.message.register(process_chatgpt, UserState.chat_gpt)
+
+    # Start handler
     dp.message.register(start, Command("start"))
-    # dp.callback_query.register(process_role_selection, F.data.startswith("role_"))
-    # dp.message.register(process_invite_code, RegistrationStates.waiting_for_invite_code)
 
     bot = Bot(token=bot_token)
     await dp.start_polling(bot)
