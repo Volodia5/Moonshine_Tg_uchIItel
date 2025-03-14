@@ -2,8 +2,18 @@ This is python telegram bot in aiogram framework.
 
 It using official openai package for quiz generation.
 
+It uses supabase for database.
+
 It has two modes:
 - teacher mode
 - student mode
+
+Teacher mode:
+- create links to generative quiz
+- see list of students and their results
+
+Student mode:
+- pass generative quiz
+- see results
 
 Пиши сообщения бота на русском языке.

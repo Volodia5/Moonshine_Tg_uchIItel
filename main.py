@@ -8,13 +8,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 
-from app.handlers.start import start, process_lesson_text, process_poll_answer
-from app.handlers.start import TeacherStates
-from app.handlers.chatgpt import chatgpt, process_chatgpt
-from app.states.state import ChatGptStates
-# from app.handlers.role_selection import process_role_selection
-# from app.handlers.invite_code import process_invite_code
-# from app.states import RegistrationStates
+from app.routes import register_handlers
 
 
 async def main() -> None:
@@ -25,13 +19,8 @@ async def main() -> None:
     dp = Dispatcher()
     bot = Bot(token=bot_token)
 
-    dp.message.register(start, Command("start"))
-    dp.message.register(process_lesson_text, TeacherStates.waiting_for_lesson_text)
-    dp.message.register(chatgpt, Command("chatgpt"))
-    dp.message.register(process_chatgpt, ChatGptStates.chat_gpt)
-    dp.poll_answer.register(process_poll_answer)
-    # dp.callback_query.register(process_role_selection, F.data.startswith("role_"))
-    # dp.message.register(process_invite_code, RegistrationStates.waiting_for_invite_code)
+    # Register all handlers from routes.py
+    register_handlers(dp)
 
     await dp.start_polling(bot)
 

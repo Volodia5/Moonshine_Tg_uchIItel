@@ -8,3 +8,6 @@ class ChatGptStates(StatesGroup):
     chat_gpt = State()
 class TeacherStates(StatesGroup):
     waiting_for_lesson_text = State()
+
+class StudentStates(StatesGroup):
+    waiting_for_name = State()

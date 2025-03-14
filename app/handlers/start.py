@@ -1,8 +1,8 @@
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Poll, PollAnswer
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from app.utils.database import store_lesson_text, get_lesson_text
-from app.states.state import TeacherStates
+from app.utils.database import store_lesson_text, get_lesson_text, check_user_exists, save_user, get_user_name, store_quiz_result, get_teacher_links, get_quiz_results_by_link
+from app.states.state import TeacherStates, StudentStates
 from app.handlers.chatgpt import process_chatgpt
 import os
 from openai import OpenAI
@@ -15,6 +15,7 @@ class Question(BaseModel):
     question: str
     options: List[str]
     correctAnswer: int
+    explanation: str  # Add explanation field to the model
 
 class Quiz(BaseModel):
     questions: List[Question]
@@ -31,11 +32,28 @@ async def start(message: Message, state: FSMContext) -> None:
         try:
             deep_link_data = message.text.split()[1]
             lesson_id = int(deep_link_data)
+            
+            # Check if user exists in the database
+            user_id = float(message.from_user.id)
+            user_exists = await check_user_exists(user_id)
+            
+            
+            if not user_exists:
+                # User doesn't exist, ask for name
+                await state.set_state(StudentStates.waiting_for_name)
+                await state.update_data(lesson_id=lesson_id)
+                await message.answer(
+                    "👋 Привет! Похоже, вы впервые используете нашего бота.\n\n"
+                    "Пожалуйста, введите ваше имя:"
+                )
+                return
+            
             lesson_text = await get_lesson_text(lesson_id)
+            name = await get_user_name(user_id)
             
             # Send welcome message with lesson text
             await message.answer(
-                f"👋 Привет! Вы запустили бота в режиме ученика.\n\n"
+                f"👋 Привет, {name}! Вы запустили бота в режиме ученика.\n\n"
                 "🎯 Сейчас я сгенерирую вопросы по материалу..."
             )
 
@@ -57,7 +75,7 @@ async def start(message: Message, state: FSMContext) -> None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один: "
+                        "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один."
                     },
                     {
                         "role": "user",
@@ -85,7 +103,8 @@ async def start(message: Message, state: FSMContext) -> None:
                 total_questions=len(quiz_data.questions),
                 user_id=message.from_user.id,
                 chat_id=message.chat.id,
-                correct_answers=0
+                correct_answers=0,
+                lesson_id=lesson_id
             )
             
             # Send the first question
@@ -113,10 +132,27 @@ async def send_next_question(chat_id: int, state: FSMContext, bot) -> None:
     # Check if we've reached the end of the quiz
     if current_question >= total_questions:
         correct_answers = data.get("correct_answers", 0)
-        await bot.send_message(
-            chat_id=chat_id,
-            text=f"🎉 Квиз завершен! Ваш результат: {correct_answers}/{total_questions}"
-        )
+        # Calculate score from 0 to 100
+        average_score = int((correct_answers / total_questions) * 100) if total_questions > 0 else 0
+        
+        # Get user_id and lesson_id from state
+        user_id = data.get("user_id")
+        link_id = data.get("lesson_id")
+        
+        # Store the result in the database
+        try:
+            await store_quiz_result(float(user_id), link_id, correct_answers, total_questions)
+            await bot.send_message(
+                chat_id=chat_id,
+                text=f"🎉 Квиз завершен! Ваш результат: {correct_answers}/{total_questions} ({average_score}%)"
+            )
+        except Exception as e:
+            print(f"Error storing quiz result: {e}")
+            await bot.send_message(
+                chat_id=chat_id,
+                text=f"🎉 Квиз завершен! Ваш результат: {correct_answers}/{total_questions} ({average_score}%)"
+            )
+        
         # Clear the state
         await state.clear()
         return
@@ -125,7 +161,10 @@ async def send_next_question(chat_id: int, state: FSMContext, bot) -> None:
     question = quiz_data.get("questions", [])[current_question]
     
     # Ensure correct_option_id is within valid range
-    correct_option_id = min(max(0, question["correctAnswer"] - 1), len(question["options"]) - 1)
+    correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]))
+    
+    # Get the explanation for this question
+    explanation = question.get("explanation", "Правильный ответ!")
     
     # Send the question number
     await bot.send_message(
@@ -141,7 +180,7 @@ async def send_next_question(chat_id: int, state: FSMContext, bot) -> None:
         is_anonymous=False,
         type="quiz",
         correct_option_id=correct_option_id,
-        explanation="Правильный ответ!",
+        explanation=explanation,
         open_period=15  # 15 seconds time limit
     )
     
@@ -178,14 +217,20 @@ async def handle_poll_timeout(poll_id: str, timeout: int) -> None:
         # Get the current state data
         data = await state.get_data()
         current_question = data.get("current_question", 0)
+        quiz_data = data.get("quiz_data", {})
+        
+        # Get the current question data
+        question = quiz_data.get("questions", [])[current_question]
+        correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]))
+        correct_answer = question["options"][correct_option_id]
         
         # Update the state to move to the next question
         await state.update_data(current_question=current_question + 1)
         
-        # Send a message that time is up
+        # Send a message that time is up with the correct answer
         await bot.send_message(
             chat_id=chat_id,
-            text="⏱️ Время вышло! Переходим к следующему вопросу..."
+            text=f"⏱️ Время вышло! Правильный ответ: {correct_answer}\n\nПереходим к следующему вопросу..."
         )
         
         # Wait a moment before sending the next question
@@ -253,11 +298,163 @@ async def process_lesson_text(message: Message, state: FSMContext) -> None:
         
         await message.answer(
             "✅ Текст урока успешно сохранен!\n\n"
-            f"🔗 Ссылка для учеников:\n{student_link}"
+            f"🔗 Ссылка для учеников:\n{student_link}\n\n"
+            "Чтобы просмотреть все созданные вами ссылки и результаты, используйте команду /links"
         )
     except Exception as e:
         print(e)
         await message.answer("❌ Произошла ошибка при сохранении текста урока. Пожалуйста, попробуйте позже.")
     finally:
         await state.clear()
+
+
+async def process_student_name(message: Message, state: FSMContext) -> None:
+    """Process the student's name and save it to the database"""
+    try:
+        # Get the student's name from the message
+        student_name = message.text.strip()
+        
+        # Get the user ID
+        user_id = float(message.from_user.id)
+        
+        # Save the user to the database
+        await save_user(user_id, student_name)
+        
+        # Get the lesson ID from the state
+        data = await state.get_data()
+        lesson_id = data.get("lesson_id")
+        
+        # Get the lesson text
+        lesson_text = await get_lesson_text(lesson_id)
+        
+        # Send welcome message
+        await message.answer(
+            f"✅ Спасибо, {student_name}! Ваше имя сохранено.\n\n"
+            "👋 Вы запустили бота в режиме ученика.\n\n"
+            "🎯 Сейчас я сгенерирую вопросы по материалу..."
+        )
+        
+        # Generate quiz using ChatGPT
+        api_key = os.getenv("API_CHATGPT")
+        api_base = os.getenv("API_BASE")
+        
+        if not api_key:
+            await message.answer("❌ Ошибка: API ключ не настроен.")
+            return
+
+        client = OpenAI(
+            api_key=api_key,
+            base_url=api_base
+        )
+
+        response = client.beta.chat.completions.parse(
+            model="openai/gpt-4o-2024-11-20",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один."
+                },
+                {
+                    "role": "user",
+                    "content": lesson_text
+                }
+            ],
+            temperature=0.4,
+            response_format=Quiz
+        )
+
+        # Get quiz data
+        quiz_data = response.choices[0].message.parsed
+        
+        # Send text of the lesson
+        await message.answer(f"📚 Текст урока:\n{lesson_text}\n\n")
+        await message.answer("⏱️ На каждый вопрос у вас будет 15 секунд. Готовы? Начинаем!")
+        
+        # Wait a moment before starting the quiz
+        await asyncio.sleep(2)
+        
+        # Store quiz data in state for the poll_answer handler
+        await state.update_data(
+            quiz_data=quiz_data.dict(),
+            current_question=0,
+            total_questions=len(quiz_data.questions),
+            user_id=message.from_user.id,
+            chat_id=message.chat.id,
+            correct_answers=0,
+            lesson_id=lesson_id
+        )
+        
+        # Send the first question
+        await send_next_question(message.chat.id, state, message.bot)
+        
+    except Exception as e:
+        print(e)
+        await message.answer("❌ Произошла ошибка при сохранении вашего имени. Пожалуйста, попробуйте позже.")
+        # Only clear state on error
+        await state.clear()
+
+
+async def show_teacher_links(message: Message, state: FSMContext) -> None:
+    """Show all links created by the teacher"""
+    try:
+        teacher_id = float(message.from_user.id)
+        links = await get_teacher_links(teacher_id)
+        
+        if not links:
+            await message.answer("У вас пока нет созданных ссылок. Отправьте текст урока, чтобы создать новую ссылку.")
+            return
+        
+        # Create inline keyboard with links
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=f"Урок {link['id']}: {link['text'][:30]}...", callback_data=f"link_{link['id']}")] 
+            for link in links
+        ])
+        
+        await message.answer("Выберите ссылку, чтобы просмотреть результаты:", reply_markup=keyboard)
+    except Exception as e:
+        print(e)
+        await message.answer("❌ Произошла ошибка при получении списка ссылок. Пожалуйста, попробуйте позже.")
+
+
+async def show_quiz_results(callback: CallbackQuery, state: FSMContext) -> None:
+    """Show quiz results for a specific link"""
+    try:
+        # Extract link ID from callback data
+        link_id = int(callback.data.split('_')[1])
+        
+        # Get quiz results for this link
+        results = await get_quiz_results_by_link(link_id)
+        
+        if not results:
+            await callback.message.answer(f"По ссылке #{link_id} пока нет результатов.")
+            await callback.answer()
+            return
+        
+        # Format results as a message
+        message_text = f"📊 Результаты по ссылке #{link_id}:\n\n"
+        
+        for i, result in enumerate(results, 1):
+            message_text += (
+                f"{i}. {result['name']}: {result['correct_answers']}/{result['total_questions']} "
+                f"({result['average_score']}%)\n"
+            )
+        
+        # Add back button
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад к списку", callback_data="back_to_links")]
+        ])
+        
+        await callback.message.answer(message_text, reply_markup=keyboard)
+        await callback.answer()
+    except Exception as e:
+        print(e)
+        await callback.message.answer("❌ Произошла ошибка при получении результатов. Пожалуйста, попробуйте позже.")
+        await callback.answer()
+
+
+async def back_to_links(callback: CallbackQuery, state: FSMContext) -> None:
+    """Handle back button to return to links list"""
+    await callback.message.delete()
+    await show_teacher_links(callback.message, state)
+    await callback.answer()
         
