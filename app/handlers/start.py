@@ -2,9 +2,8 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, C
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from app.utils.database import store_lesson_text
+from app.states.state import TeacherStates
 
-class TeacherStates(StatesGroup):
-    waiting_for_lesson_text = State()
 
 async def start(message: Message, state: FSMContext) -> None:
     # Check if the message contains a deep link
@@ -19,14 +18,18 @@ async def start(message: Message, state: FSMContext) -> None:
 
 async def process_lesson_text(message: Message, state: FSMContext) -> None:
     try:
+        # Get username from message
+        
         # Store the lesson text in Supabase
         lesson_id = await store_lesson_text(
             text=message.text,
             author_id=float(message.from_user.id)
         )
-        
+
+        # print(message.from_user)
         # Generate student link
-        bot_username = message.bot.username
+        # bot_username = message.b TODO: ОШИБка
+        bot_username = 'teacherhelpercu_bot'
         student_link = f"https://t.me/{bot_username}?start={lesson_id}"
         
         await message.answer(
@@ -34,6 +37,7 @@ async def process_lesson_text(message: Message, state: FSMContext) -> None:
             f"🔗 Ссылка для учеников:\n{student_link}"
         )
     except Exception as e:
+        print(e)
         await message.answer("❌ Произошла ошибка при сохранении текста урока. Пожалуйста, попробуйте позже.")
     finally:
         await state.clear()
