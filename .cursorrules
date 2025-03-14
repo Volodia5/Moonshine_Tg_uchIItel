@@ -1,3 +1,9 @@
 This is python telegram bot in aiogram framework.
 
 It using official openai package for quiz generation.
+
+It has two modes:
+- teacher mode
+- student mode
+
+Пиши сообщения бота на русском языке.
