@@ -1,21 +1,47 @@
-import logging
-from aiogram import Bot, Dispatcher, types
+import asyncio
+import os
+from audioop import reverse
+
+from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.utils import executor
+from aiogram.types import Message
+from dotenv import load_dotenv
 
-# Замените 'YOUR_TOKEN' на токен вашего бота
-TELEGRAM_API_TOKEN = 'YOUR_TOKEN'
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
 
-# Инициализация бота и диспетчера
-bot = Bot(token=TELEGRAM_API_TOKEN)
-dp = Dispatcher()
+async def start(message: Message) -> None:
+    await message.answer("Добро пожаловать")
 
-@dp.message(Command("start"))
-async def start_command(message: types.Message):
-    await message.answer("Привет! Я ваш Telegram-бот. Чем могу помочь?")
+async def echo(message: Message) -> None:
+    await message.answer("Эхо: "+message.text)
 
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+
+async def my_command(message: Message) -> None:
+    await message.answer("my command handler")
+
+async def rev(message: Message) -> None:
+    s = message.text
+    k = len("/reverse")
+
+    s = s[:k:-1]
+    await message.answer(s)
+
+async def main() -> None:
+    # переименуй файл .env.dist в .env и подставь соотвествующие данные
+    load_dotenv()
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
+
+
+
+    dp = Dispatcher()
+    dp.message.register(my_command, Command("my_command"))
+    dp.message.register(start, Command("start"))
+    dp.message.register(rev, Command("reverse"))
+    dp.message.register(echo, F.text)
+
+    bot = Bot(token=bot_token)
+    await dp.start_polling(bot)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
