@@ -1,5 +1,3 @@
 This is python telegram bot in aiogram framework.
 
 It using official openai package for quiz generation.
-
-It using supabase for database.

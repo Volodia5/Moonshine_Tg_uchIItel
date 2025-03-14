@@ -1,13 +1,11 @@
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 async def start(message: Message) -> None:
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="Учитель", callback_data="role_teacher"),
-                InlineKeyboardButton(text="Ученик", callback_data="role_student")
-            ]
-        ]
-    )
-    await message.answer("Добро пожаловать! Выберите вашу роль:", reply_markup=keyboard)
-    await message.answer("Учитель сможет создавать задачи и приглашать учеников.\nУченик сможет получать и выполнять задачи от учителя.")
+    # Check if the message contains a deep link
+    if message.text and len(message.text.split()) > 1:
+        # This is a deep link start
+        deep_link_data = message.text.split()[1]
+        await message.answer(f"👋 Hi! You're starting in student mode.\nDeep link data: {deep_link_data}")
+    else:
+        # This is a regular start
+        await message.answer("👋 Hi teacher! Welcome to the bot.")
