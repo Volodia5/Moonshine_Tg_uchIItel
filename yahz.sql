@@ -31,6 +31,7 @@ create table public.users (
   user_id double precision not null,
   created_at timestamp with time zone null default CURRENT_TIMESTAMP,
   name text not null,
+  language text null default 'ru',
   constraint users_pkey primary key (id),
   constraint users_user_id_key unique (user_id)
 ) TABLESPACE pg_default;

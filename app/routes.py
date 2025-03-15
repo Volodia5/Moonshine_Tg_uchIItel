@@ -1,5 +1,6 @@
 from app.handlers.start import start, process_lesson_text, process_poll_answer, process_student_name, show_teacher_links, show_quiz_results, back_to_links
 from app.handlers.chatgpt import chatgpt, process_chatgpt
+from app.handlers.language import language_command, language_callback
 from app.states.state import TeacherStates, StudentStates, ChatGptStates
 from aiogram.filters import Command
 
@@ -20,3 +21,7 @@ def register_handlers(dp):
     dp.message.register(show_teacher_links, Command("links"))
     dp.callback_query.register(show_quiz_results, lambda c: c.data.startswith("link_"))
     dp.callback_query.register(back_to_links, lambda c: c.data == "back_to_links")
+    
+    # Обработчики для языка
+    dp.message.register(language_command, Command("language"))
+    dp.callback_query.register(language_callback, lambda c: c.data.startswith("lang_"))

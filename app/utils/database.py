@@ -36,13 +36,14 @@ async def check_user_exists(user_id: float) -> bool:
     result = supabase.table("users").select("id").eq("user_id", user_id).execute()
     return len(result.data) > 0
 
-async def save_user(user_id: float, name: str) -> int:
+async def save_user(user_id: float, name: str, language: str = "ru") -> int:
     """
     Save a new user to the users table
     """
     data = {
         "user_id": user_id,
-        "name": name
+        "name": name,
+        "language": language
     }
     result = supabase.table("users").insert(data).execute()
     return result.data[0]["id"] 
@@ -122,3 +123,42 @@ async def get_quiz_results_by_link(link_id: int):
         return results_with_names
     
     return []
+
+async def get_user_language(user_id: float) -> str:
+    """
+    Get user language from the users table by ID
+    
+    Args:
+        user_id: Telegram user ID
+        
+    Returns:
+        Language code (e.g., "ru", "en") or None if user not found
+    """
+    result = supabase.table("users").select("language").eq("user_id", user_id).execute()
+    return result.data[0]["language"] if result.data and "language" in result.data[0] else None
+
+async def set_user_language(user_id: float, language: str) -> bool:
+    """
+    Set user language in the users table
+    
+    Args:
+        user_id: Telegram user ID
+        language: Language code (e.g., "ru", "en")
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Check if user exists
+        user_exists = await check_user_exists(user_id)
+        
+        if user_exists:
+            # Update existing user
+            result = supabase.table("users").update({"language": language}).eq("user_id", user_id).execute()
+            return True
+        else:
+            # User doesn't exist, can't update language
+            return False
+    except Exception as e:
+        print(f"Error setting user language: {e}")
+        return False
