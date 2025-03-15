@@ -161,7 +161,7 @@ async def send_next_question(chat_id: int, state: FSMContext, bot) -> None:
     question = quiz_data.get("questions", [])[current_question]
     
     # Ensure correct_option_id is within valid range
-    correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]))
+    correct_option_id = min(max(0, question["correctAnswer"] - 1), len(question["options"]) - 1)
     
     # Get the explanation for this question
     explanation = question.get("explanation", "Правильный ответ!")
@@ -221,7 +221,7 @@ async def handle_poll_timeout(poll_id: str, timeout: int) -> None:
         
         # Get the current question data
         question = quiz_data.get("questions", [])[current_question]
-        correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]))
+        correct_option_id = min(max(0, question["correctAnswer"] - 1), len(question["options"]) - 1)
         correct_answer = question["options"][correct_option_id]
         
         # Update the state to move to the next question
