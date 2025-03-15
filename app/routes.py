@@ -13,8 +13,8 @@ def register_handlers(dp):
     dp.message.register(process_student_name, StudentStates.waiting_for_name)
     
     # Обработчики для ChatGPT
-    dp.message.register(chatgpt, Command("chatgpt"))
-    dp.message.register(process_chatgpt, ChatGptStates.chat_gpt)
+    # dp.message.register(chatgpt, Command("chatgpt"))
+    # dp.message.register(process_chatgpt, ChatGptStates.chat_gpt)
     
     # Обработчики для учителя
     dp.message.register(show_teacher_links, Command("links"))

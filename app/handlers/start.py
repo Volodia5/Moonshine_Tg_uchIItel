@@ -71,7 +71,7 @@ async def start(message: Message, state: FSMContext) -> None:
             )
 
             response = client.beta.chat.completions.parse(
-                model="openai/gpt-4o-2024-11-20",
+                model="openai/gpt-4o-mini",
                 messages=[
                     {
                         "role": "system",
@@ -350,7 +350,7 @@ async def process_student_name(message: Message, state: FSMContext) -> None:
         )
 
         response = client.beta.chat.completions.parse(
-            model="openai/gpt-4o-2024-11-20",
+            model="openai/gpt-4o-mini",
             messages=[
                 {
                     "role": "system",
@@ -456,7 +456,29 @@ async def show_quiz_results(callback: CallbackQuery, state: FSMContext) -> None:
 
 async def back_to_links(callback: CallbackQuery, state: FSMContext) -> None:
     """Handle back button to return to links list"""
-    await callback.message.delete()
-    await show_teacher_links(callback.message, state)
-    await callback.answer()
+    try:
+        # Сначала получаем новое сообщение, затем удаляем старое
+        new_message = await callback.message.answer("Загрузка списка ссылок...")
+        await callback.message.delete()
+        
+        # Используем новое сообщение для показа списка ссылок
+        teacher_id = float(callback.from_user.id)
+        links = await get_teacher_links(teacher_id)
+        
+        if not links:
+            await new_message.edit_text("У вас пока нет созданных ссылок. Отправьте текст урока, чтобы создать новую ссылку.")
+            await callback.answer()
+            return
+        
+        # Создаем клавиатуру с ссылками
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=f"Урок {link['id']}: {link['text'][:30]}...", callback_data=f"link_{link['id']}")] 
+            for link in links
+        ])
+        
+        await new_message.edit_text("Выберите ссылку, чтобы просмотреть результаты:", reply_markup=keyboard)
+        await callback.answer()
+    except Exception as e:
+        print(f"Ошибка в back_to_links: {e}")
+        await callback.answer("Произошла ошибка при возврате к списку ссылок")
         
