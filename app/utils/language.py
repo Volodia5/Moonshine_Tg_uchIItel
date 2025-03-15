@@ -15,16 +15,16 @@ LANGUAGES = {
 TRANSLATIONS = {
     # Start messages
     "welcome_teacher": {
-        "ru": "👋 Добро пожаловать в режим учителя!\nПожалуйста, отправьте текст урока.",
-        "en": "👋 Welcome to teacher mode!\nPlease send the lesson text."
+        "ru": "👋 Добро пожаловать в режим учителя!\nПожалуйста, отправьте текст урока. Что бы запустить тест - перейдите по его ссылке.",
+        "en": "👋 Welcome to teacher mode!\nPlease send the lesson text. To start the test, go to its link."
     },
     "welcome_student": {
-        "ru": "👋 Привет! Похоже, вы впервые используете нашего бота.\n\nПожалуйста, введите ваше имя:",
-        "en": "👋 Hello! It seems you're using our bot for the first time.\n\nPlease enter your name:"
+        "ru": "👋 Привет! Похоже, вы впервые используете нашего бота. \n\nЕсли вам нужно создать тест - напишите /start \n\nПожалуйста, введите ваше имя:",
+        "en": "👋 Hello! It seems you're using our bot for the first time.\n\nIf you need to create a test, write /start \n\nPlease enter your name:"
     },
     "welcome_back_student": {
-        "ru": "👋 Привет, {}! Вы запустили бота в режиме ученика.\n\n🎯 Сейчас я сгенерирую вопросы по материалу...",
-        "en": "👋 Hello, {}! You've launched the bot in student mode.\n\n🎯 I'll now generate questions based on the material..."
+        "ru": "👋 Привет, {}! Вы запустили бота в режиме ученика.\n\n🎯 Сейчас я сгенерирую вопросы по материалу... \n\nЕсли вам нужно создать тест - напишите /start",
+        "en": "👋 Hello, {}! You've launched the bot in student mode.\n\n🎯 I'll now generate questions based on the material... \n\nIf you need to create a test, write /start"
     },
     
     # Error messages
