@@ -75,7 +75,7 @@ async def start(message: Message, state: FSMContext) -> None:
                 messages=[
                     {
                         "role": "system",
-                        "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один."
+                        "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один. ВАЖНО: индекс правильного ответа должен начинаться с 0 (нумерация с нуля)."
                     },
                     {
                         "role": "user",
@@ -160,8 +160,8 @@ async def send_next_question(chat_id: int, state: FSMContext, bot) -> None:
     # Get the current question data
     question = quiz_data.get("questions", [])[current_question]
     
-    # Ensure correct_option_id is within valid range
-    correct_option_id = min(max(0, question["correctAnswer"] - 1), len(question["options"]) - 1)
+    # Ensure correct_option_id is within valid range (assuming 0-indexed)
+    correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]) - 1)
     
     # Get the explanation for this question
     explanation = question.get("explanation", "Правильный ответ!")
@@ -221,7 +221,9 @@ async def handle_poll_timeout(poll_id: str, timeout: int) -> None:
         
         # Get the current question data
         question = quiz_data.get("questions", [])[current_question]
-        correct_option_id = min(max(0, question["correctAnswer"] - 1), len(question["options"]) - 1)
+        
+        # Ensure correct_option_id is within valid range (assuming 0-indexed)
+        correct_option_id = min(max(0, question["correctAnswer"]), len(question["options"]) - 1)
         correct_answer = question["options"][correct_option_id]
         
         # Update the state to move to the next question
@@ -352,7 +354,7 @@ async def process_student_name(message: Message, state: FSMContext) -> None:
             messages=[
                 {
                     "role": "system",
-                    "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один."
+                    "content": "Ты - помощник для учителя. Твоя задача сделать квиз на русском языке 3 вопроса и 4 варианта ответа по данному тексту. Для каждого вопроса добавь объяснение правильного ответа. Время ответа на каждый вопрос: 15 секунд. Правильный ответ только один. ВАЖНО: индекс правильного ответа должен начинаться с 0 (нумерация с нуля)."
                 },
                 {
                     "role": "user",
